@@ -349,6 +349,7 @@ elif menu == "내 결재함":
                     st.rerun()
 
 # --- 메뉴 7: 전사 감사 콘솔 ---
+# --- 메뉴 7: 전사 감사 콘솔 ---
 elif menu == "전사 감사 콘솔":
     st.markdown("<h2>전사 데이터 감사 (Audit)</h2>", unsafe_allow_html=True)
     tab1, tab2, tab3 = st.tabs(["휴가 기안 내역", "연장근무 내역", "타임시트 원본"])
@@ -360,6 +361,8 @@ elif menu == "전사 감사 콘솔":
             df_lv.columns = ['사번', '성명', '종류', '시작일', '종료일', '최종상태']
             st.dataframe(df_lv, use_container_width=True)
             st.download_button("📥 엑셀 추출", data=convert_df_to_csv(df_lv), file_name='audit_leave.csv', mime='text/csv')
+        else:
+            st.info("아직 등록된 휴가 기안 내역이 없습니다.")
             
     with tab2:
         ot_all = supabase.table("overtime_logs").select("emp_id, name, date, hours, final_status").order('id', desc=True).execute()
@@ -368,6 +371,8 @@ elif menu == "전사 감사 콘솔":
             df_ot.columns = ['사번', '성명', '일자', '시간', '최종상태']
             st.dataframe(df_ot, use_container_width=True)
             st.download_button("📥 엑셀 추출", data=convert_df_to_csv(df_ot), file_name='audit_overtime.csv', mime='text/csv')
+        else:
+            st.info("아직 등록된 연장근무 신청 내역이 없습니다.")
             
     with tab3:
         wl_all = supabase.table("work_logs").select("emp_id, name, work_date, hours").order('work_date', desc=True).execute()
@@ -376,7 +381,8 @@ elif menu == "전사 감사 콘솔":
             df_wl.columns = ['사번', '성명', '일자', '시간']
             st.dataframe(df_wl, use_container_width=True)
             st.download_button("📥 엑셀 추출", data=convert_df_to_csv(df_wl), file_name='audit_work.csv', mime='text/csv')
-
+        else:
+            st.info("아직 작성된 타임시트 기록이 없습니다.")
 # --- 메뉴 8: 직원 및 권한 관리 ---
 elif menu == "직원 및 권한 관리(HR)":
     st.markdown("<h2>직원 및 시스템 권한 관리</h2>", unsafe_allow_html=True)
