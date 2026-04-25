@@ -55,7 +55,7 @@ def convert_df_to_csv(df):
     return df.to_csv(index=False).encode('utf-8-sig')
 
 POS_MAP = {"인턴": "10", "사원": "20", "대리": "30", "과장": "40", "차장": "50", "부장": "60", "임원": "70"}
-DEPT_MAP = {"회계감사본부": "AUD", "세무자문본부": "TAX", "경영자문본부": "CON", "재무자문본부": "FAS", "리스크자문본부": "RSK", "HR본부": "HRM"}
+DEPT_MAP = {"이사회": "BOD", "회계감사본부": "AUD", "세무자문본부": "TAX", "경영자문본부": "CON", "재무자문본부": "FAS", "리스크자문본부": "RSK", "HR본부": "HRM"}
 
 if 'logged_in' not in st.session_state:
     st.session_state.logged_in = False
@@ -176,24 +176,51 @@ if menu == "대시보드":
     with col2: st.metric("잔여 연차", f"{(user.get('total_leaves') or 15) - used_leaves} 일")
 
 # --- 메뉴 2: 개인정보 관리 (복구됨) ---
+# --- 메뉴 2: 개인정보 관리 (복구됨 + 비밀번호 변경 추가) ---
 elif menu == "개인정보 관리":
     st.markdown("<h2>개인정보 관리</h2>", unsafe_allow_html=True)
-    with st.form("profile_form"):
-        st.info("이름, 부서 등 핵심 인사 정보는 HR 부서만 수정할 수 있습니다.")
-        new_photo = st.file_uploader("프로필 사진 업데이트 (JPG/PNG)", type=['jpg', 'jpeg', 'png'])
-        
-        if st.form_submit_button("사진 저장하기") and new_photo:
-            # 사진을 문자열(Base64)로 변환
-            b64_str = base64.b64encode(new_photo.read()).decode()
+    
+    tab_photo, tab_pw = st.tabs(["프로필 사진 업데이트", "비밀번호 변경"])
+    
+    with tab_photo:
+        with st.form("profile_form"):
+            st.info("이름, 부서 등 핵심 인사 정보는 HR 부서만 수정할 수 있습니다.")
+            new_photo = st.file_uploader("프로필 사진 업데이트 (JPG/PNG)", type=['jpg', 'jpeg', 'png'])
             
-            existing = supabase.table("user_profile").select("emp_id").eq("emp_id", user['emp_id']).execute()
-            if existing.data:
-                supabase.table("user_profile").update({"photo_url": b64_str}).eq("emp_id", user['emp_id']).execute()
-            else:
-                supabase.table("user_profile").insert({"emp_id": user['emp_id'], "photo_url": b64_str}).execute()
+            if st.form_submit_button("사진 저장하기") and new_photo:
+                # 사진을 문자열(Base64)로 변환
+                b64_str = base64.b64encode(new_photo.read()).decode()
                 
-            st.success("사진 업데이트 완료!")
-            st.rerun()
+                existing = supabase.table("user_profile").select("emp_id").eq("emp_id", user['emp_id']).execute()
+                if existing.data:
+                    supabase.table("user_profile").update({"photo_url": b64_str}).eq("emp_id", user['emp_id']).execute()
+                else:
+                    supabase.table("user_profile").insert({"emp_id": user['emp_id'], "photo_url": b64_str}).execute()
+                    
+                st.success("사진 업데이트 완료!")
+                st.rerun()
+
+    with tab_pw:
+        with st.form("pw_change_form"):
+            st.caption("안전을 위해 현재 비밀번호를 먼저 확인합니다.")
+            current_pw = st.text_input("현재 비밀번호", type="password")
+            new_pw = st.text_input("새 비밀번호", type="password")
+            confirm_pw = st.text_input("새 비밀번호 다시 입력", type="password")
+            
+            if st.form_submit_button("비밀번호 변경하기"):
+                # 1. DB에서 현재 비밀번호가 맞는지 검증
+                db_res = supabase.table("accounts").select("password").eq("emp_id", user['emp_id']).execute()
+                
+                if db_res.data and db_res.data[0]['password'] == current_pw:
+                    # 2. 새 비밀번호 두 개가 서로 일치하는지 확인
+                    if new_pw == confirm_pw and len(new_pw) > 0:
+                        # 3. DB에 새 비밀번호 업데이트
+                        supabase.table("accounts").update({"password": new_pw}).eq("emp_id", user['emp_id']).execute()
+                        st.success("✅ 비밀번호가 안전하게 변경되었습니다! 다음 로그인부터 새 비밀번호를 사용해주세요.")
+                    else:
+                        st.error("새 비밀번호가 서로 일치하지 않거나 너무 짧습니다.")
+                else:
+                    st.error("현재 비밀번호가 일치하지 않습니다.")
 
 # --- 메뉴 3: 주간 타임시트 ---
 elif menu == "주간 타임시트":
