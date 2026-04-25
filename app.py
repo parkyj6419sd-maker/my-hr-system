@@ -124,12 +124,12 @@ if st.sidebar.button("로그아웃"):
     st.session_state.user = None
     st.rerun()
 
-menu_options = ["대시보드", "개인정보 관리", "주간 타임시트", "근태 예외 기안", "연장근무 신청", "내 결재함"]
-if user['role'] in ['MANAGER', 'HR']: menu_options.append("전사 감사 콘솔")
+# 사이드바 메뉴 구성 부분
+menu_options = ["대시보드", "개인정보 관리", "주간 타임시트", "휴가 기안", "연장근무 신청", "내 결재함"]
+if user['role'] in ['MANAGER', 'HR']: menu_options.append("결재 관리")
 if user['role'] == 'HR': menu_options.append("직원 및 권한 관리(HR)")
 
 menu = st.sidebar.radio("메뉴 선택", menu_options)
-
 st.markdown(f"<div style='padding-top:10px; font-weight:bold; font-size:16px;'>🏢 {user['dept']} <span style='color:#86BC25;'>{user['name']}</span>님, 환영합니다. (권한: {user['role']})</div>", unsafe_allow_html=True)
 st.divider()
 
@@ -251,8 +251,9 @@ elif menu == "주간 타임시트":
                     st.rerun()
 
 # --- 메뉴 4: 근태 예외 기안 ---
-elif menu == "근태 예외 기안":
-    st.markdown("<h2>근태 예외 기안</h2>", unsafe_allow_html=True)
+# 기존 '근태 예외 기안' 찾아서 수정
+elif menu == "휴가 기안":
+    st.markdown("<h2>휴가 기안</h2>", unsafe_allow_html=True)
     approver_opts = get_approver_list(); app_keys = list(approver_opts.keys())
     
     with st.form("leave_form"):
@@ -350,10 +351,10 @@ elif menu == "내 결재함":
 
 # --- 메뉴 7: 전사 감사 콘솔 ---
 # --- 메뉴 7: 전사 감사 콘솔 ---
-elif menu == "전사 감사 콘솔":
-    st.markdown("<h2>전사 데이터 감사 (Audit)</h2>", unsafe_allow_html=True)
+# 기존 '전사 감사 콘솔' 찾아서 수정
+elif menu == "결재 관리":
+    st.markdown("<h2>결재 관리</h2>", unsafe_allow_html=True)
     tab1, tab2, tab3 = st.tabs(["휴가 기안 내역", "연장근무 내역", "타임시트 원본"])
-    
     with tab1:
         lv_all = supabase.table("leave_requests").select("emp_id, name, type, start_date, end_date, final_status").order('id', desc=True).execute()
         if lv_all.data:
