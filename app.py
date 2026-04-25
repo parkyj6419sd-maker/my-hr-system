@@ -164,8 +164,9 @@ if menu == "대시보드":
     st.divider()
     
     today = date.today()
-    wl_res = supabase.table("work_logs").select("hours").eq("emp_id", user['emp_id']).like("work_date", f"{today.year}-{today.month:02d}%").execute()
-    m_hours = sum(r['hours'] for r in wl_res.data) if wl_res.data else 0.0
+    # 클라우드 엄격성에 맞춰, 데이터를 먼저 가져온 후 이번 달(YYYY-MM) 데이터만 걸러서 합산하도록 수정
+    wl_res = supabase.table("work_logs").select("work_date, hours").eq("emp_id", user['emp_id']).execute()
+    m_hours = sum(r['hours'] for r in wl_res.data if r['work_date'] and r['work_date'].startswith(f"{today.year}-{today.month:02d}")) if wl_res.data else 0.0
     
     lv_res = supabase.table("leave_requests").select("id").eq("emp_id", user['emp_id']).eq("final_status", "승인 완료").execute()
     used_leaves = len(lv_res.data) if lv_res.data else 0
