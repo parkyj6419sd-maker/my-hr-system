@@ -1,5 +1,6 @@
 import streamlit as st
 import pandas as pd
+import base64
 from datetime import datetime, date, timedelta
 from supabase import create_client, Client
 
@@ -11,7 +12,7 @@ try:
     SUPABASE_URL = st.secrets["SUPABASE_URL"]
     SUPABASE_KEY = st.secrets["SUPABASE_KEY"]
 except Exception:
-    st.error("보안 설정(Secrets)을 찾을 수 없습니다. Streamlit Cloud 설정에서 URL과 Key를 등록해주세요.")
+    st.error("보안 설정(Secrets)을 찾을 수 없습니다.")
     st.stop()
 
 @st.cache_resource
@@ -20,7 +21,7 @@ def init_connection():
 
 supabase = init_connection()
 
-# 3. 커스텀 CSS (기본 테마 유지)
+# 3. 커스텀 CSS
 st.markdown("""
 <style>
     @import url('https://cdn.jsdelivr.net/gh/orioncactus/pretendard/dist/web/static/pretendard.css');
@@ -43,27 +44,25 @@ st.markdown("""
     .profile-name { font-size: 28px; font-weight: 800; margin-bottom: 10px; color: #1A1A1A; }
     .profile-label { font-weight: 700; color: #000000; width: 100px; display: inline-block; }
     .profile-value { color: #555555; }
+    .empty-image-box { width: 150px; height: 180px; border: 2px dashed #cccccc; background-color: #f8f9fa; display: flex; align-items: center; justify-content: center; color: #888888; font-weight: 600; font-size: 14px; margin-bottom: 10px; text-align: center; }
     .approval-card { border: 1px solid #EAEAEA; border-left: 4px solid #86BC25; padding: 15px; margin-bottom: 10px; background-color: #FAFAFA; }
     .status-badge { display: inline-block; padding: 2px 8px; border-radius: 12px; font-size: 12px; font-weight: bold; background-color: #E0E0E0; color: #333; }
     .highlight-id { font-size: 20px; font-weight: 900; color: #86BC25; background-color: #1A1A1A; padding: 5px 15px; border-radius: 4px; display: inline-block; margin-top: 10px; }
 </style>
 """, unsafe_allow_html=True)
 
-# 엑셀 변환 함수
 def convert_df_to_csv(df):
     return df.to_csv(index=False).encode('utf-8-sig')
 
-# 자동 사번 매핑
 POS_MAP = {"인턴": "10", "사원": "20", "대리": "30", "과장": "40", "차장": "50", "부장": "60", "임원": "70"}
 DEPT_MAP = {"회계감사본부": "AUD", "세무자문본부": "TAX", "경영자문본부": "CON", "재무자문본부": "FAS", "리스크자문본부": "RSK", "HR본부": "HRM"}
 
-# 4. 세션 관리
 if 'logged_in' not in st.session_state:
     st.session_state.logged_in = False
     st.session_state.user = None
 
 # =====================================================================
-# 로그인 & 회원가입 (클라우드 완벽 연동)
+# 로그인 & 회원가입
 # =====================================================================
 if not st.session_state.logged_in:
     _, col2, _ = st.columns([1, 1.2, 1])
@@ -119,14 +118,13 @@ if not st.session_state.logged_in:
 # =====================================================================
 user = st.session_state.user
 
-# 사이드바 (로그아웃 버튼)
 st.sidebar.markdown("<div style='height: 10px;'></div>", unsafe_allow_html=True)
 if st.sidebar.button("로그아웃"):
     st.session_state.logged_in = False
     st.session_state.user = None
     st.rerun()
 
-menu_options = ["대시보드", "주간 타임시트", "근태 예외 기안", "연장근무 신청", "내 결재함"]
+menu_options = ["대시보드", "개인정보 관리", "주간 타임시트", "근태 예외 기안", "연장근무 신청", "내 결재함"]
 if user['role'] in ['MANAGER', 'HR']: menu_options.append("전사 감사 콘솔")
 if user['role'] == 'HR': menu_options.append("직원 및 권한 관리(HR)")
 
@@ -144,14 +142,25 @@ def get_approver_list():
 # --- 메뉴 1: 대시보드 ---
 if menu == "대시보드":
     st.markdown("<h2>Dashboard</h2>", unsafe_allow_html=True)
-    st.markdown(f"""
-        <div class='profile-info'>
-            <div class='profile-name'>{user['name']}</div>
-            <span class='profile-label'>사번</span> <span class='profile-value'>{user['emp_id']}</span><br>
-            <span class='profile-label'>직급</span> <span class='profile-value'>{user['position']}</span><br>
-            <span class='profile-label'>부서</span> <span class='profile-value'>{user['dept']}</span><br>
-        </div>
-    """, unsafe_allow_html=True)
+    
+    # 프로필 사진 불러오기
+    photo_res = supabase.table("user_profile").select("photo_url").eq("emp_id", user['emp_id']).execute()
+    current_photo = base64.b64decode(photo_res.data[0]['photo_url']) if photo_res.data and photo_res.data[0]['photo_url'] else None
+
+    prof_col1, prof_col2 = st.columns([1, 4])
+    with prof_col1:
+        if current_photo: st.image(current_photo, width=150)
+        else: st.markdown("<div class='empty-image-box'>이미지를<br>등록하세요</div>", unsafe_allow_html=True)
+    
+    with prof_col2:
+        st.markdown(f"""
+            <div class='profile-info'>
+                <div class='profile-name'>{user['name']}</div>
+                <span class='profile-label'>사번</span> <span class='profile-value'>{user['emp_id']}</span><br>
+                <span class='profile-label'>직급</span> <span class='profile-value'>{user['position']}</span><br>
+                <span class='profile-label'>부서</span> <span class='profile-value'>{user['dept']}</span><br>
+            </div>
+        """, unsafe_allow_html=True)
     st.divider()
     
     today = date.today()
@@ -165,7 +174,27 @@ if menu == "대시보드":
     with col1: st.metric("이번 달 누적 근무 시간", f"{m_hours} 시간")
     with col2: st.metric("잔여 연차", f"{user['total_leaves'] - used_leaves} 일")
 
-# --- 메뉴 2: 주간 타임시트 ---
+# --- 메뉴 2: 개인정보 관리 (복구됨) ---
+elif menu == "개인정보 관리":
+    st.markdown("<h2>개인정보 관리</h2>", unsafe_allow_html=True)
+    with st.form("profile_form"):
+        st.info("이름, 부서 등 핵심 인사 정보는 HR 부서만 수정할 수 있습니다.")
+        new_photo = st.file_uploader("프로필 사진 업데이트 (JPG/PNG)", type=['jpg', 'jpeg', 'png'])
+        
+        if st.form_submit_button("사진 저장하기") and new_photo:
+            # 사진을 문자열(Base64)로 변환
+            b64_str = base64.b64encode(new_photo.read()).decode()
+            
+            existing = supabase.table("user_profile").select("emp_id").eq("emp_id", user['emp_id']).execute()
+            if existing.data:
+                supabase.table("user_profile").update({"photo_url": b64_str}).eq("emp_id", user['emp_id']).execute()
+            else:
+                supabase.table("user_profile").insert({"emp_id": user['emp_id'], "photo_url": b64_str}).execute()
+                
+            st.success("사진 업데이트 완료!")
+            st.rerun()
+
+# --- 메뉴 3: 주간 타임시트 ---
 elif menu == "주간 타임시트":
     st.markdown("<h2>주간 타임시트</h2>", unsafe_allow_html=True)
     col_date, _ = st.columns([1, 3])
@@ -193,9 +222,9 @@ elif menu == "주간 타임시트":
                     else: supabase.table("work_logs").insert({"emp_id": user['emp_id'], "name": user['name'], "work_date": str(d_date), "hours": n_hrs}).execute()
                     st.rerun()
 
-# --- 메뉴 3: 근태 예외 기안 ---
-elif menu == "근태 예외 기안":
-    st.markdown("<h2>근태 예외 기안</h2>", unsafe_allow_html=True)
+# --- 메뉴 4: 휴가 관리 ---
+elif menu == "휴가 관리":
+    st.markdown("<h2>휴가 관리</h2>", unsafe_allow_html=True)
     approver_opts = get_approver_list(); app_keys = list(approver_opts.keys())
     
     with st.form("leave_form"):
@@ -229,7 +258,7 @@ elif menu == "근태 예외 기안":
         st.dataframe(df_my, use_container_width=True)
         st.download_button("📥 엑셀 추출", data=convert_df_to_csv(df_my), file_name='my_leaves.csv', mime='text/csv')
 
-# --- 메뉴 4: 연장근무 신청 ---
+# --- 메뉴 5: 연장근무 신청 ---
 elif menu == "연장근무 신청":
     st.markdown("<h2>연장근무 신청</h2>", unsafe_allow_html=True)
     approver_opts = get_approver_list(); app_keys = list(approver_opts.keys())
@@ -262,7 +291,7 @@ elif menu == "연장근무 신청":
         st.dataframe(df_ot, use_container_width=True)
         st.download_button("📥 엑셀 추출", data=convert_df_to_csv(df_ot), file_name='my_overtime.csv', mime='text/csv')
 
-# --- 메뉴 5: 내 결재함 ---
+# --- 메뉴 6: 내 결재함 ---
 elif menu == "내 결재함":
     st.markdown("<h2>내 결재함 (Approval Inbox)</h2>", unsafe_allow_html=True)
     
@@ -291,7 +320,7 @@ elif menu == "내 결재함":
                     else: supabase.table("leave_requests").update({"app2_status": "반려", "final_status": "반려"}).eq("id", req['id']).execute()
                     st.rerun()
 
-# --- 메뉴 6: 전사 감사 콘솔 (MANAGER 이상) ---
+# --- 메뉴 7: 전사 감사 콘솔 ---
 elif menu == "전사 감사 콘솔":
     st.markdown("<h2>전사 데이터 감사 (Audit)</h2>", unsafe_allow_html=True)
     tab1, tab2, tab3 = st.tabs(["휴가 기안 내역", "연장근무 내역", "타임시트 원본"])
@@ -320,11 +349,10 @@ elif menu == "전사 감사 콘솔":
             st.dataframe(df_wl, use_container_width=True)
             st.download_button("📥 엑셀 추출", data=convert_df_to_csv(df_wl), file_name='audit_work.csv', mime='text/csv')
 
-# --- 메뉴 7: 직원 및 권한 관리 (HR 전용) ---
+# --- 메뉴 8: 직원 및 권한 관리 ---
 elif menu == "직원 및 권한 관리(HR)":
     st.markdown("<h2>직원 및 시스템 권한 관리</h2>", unsafe_allow_html=True)
     
-    # 조인(Join) 대신 두 테이블 데이터를 불러와 파이썬에서 병합
     emps = supabase.table("employees").select("*").order('hire_date', desc=True).execute().data
     accs = supabase.table("accounts").select("emp_id, role").execute().data
     
@@ -333,7 +361,6 @@ elif menu == "직원 및 권한 관리(HR)":
     
     if not df_emps.empty and not df_accs.empty:
         df_merged = pd.merge(df_emps, df_accs, on="emp_id")
-        
         user_dict = {f"[{row['role']}] {row['name']} ({row['emp_id']})": row['emp_id'] for _, row in df_merged.iterrows()}
         
         with st.form("role_update_form"):
