@@ -6,14 +6,15 @@ from supabase import create_client, Client
 # 1. 페이지 설정
 st.set_page_config(page_title="Enterprise HR Portal", page_icon="🏢", layout="wide")
 
-# 2. Supabase 연결 설정 (영준님의 정보를 아래에 입력하세요)
-SUPABASE_URL = "gtofmlmvgdqvelqclnxt"
-SUPABASE_KEY = "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Imd0b2ZtbG12Z2RxdmVscWNsbnh0Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzcwODkxNzAsImV4cCI6MjA5MjY2NTE3MH0.bWVeGnW_90MqSDej5piBAKSvKH9XqFJkKzdzjkb3-Ig"
-@st.cache_resource
-def init_connection():
-    return create_client(SUPABASE_URL, SUPABASE_KEY)
-
-supabase = init_connection()
+# 2. 보안 연결 설정 (Secrets 사용)
+# 직접 입력했던 URL과 KEY 자리에 st.secrets를 넣어 웹상의 '금고'를 열도록 합니다.
+try:
+    SUPABASE_URL = st.secrets["SUPABASE_URL"]
+    SUPABASE_KEY = st.secrets["SUPABASE_KEY"]
+    supabase: Client = create_client(SUPABASE_URL, SUPABASE_KEY)
+except Exception as e:
+    st.error("보안 설정(Secrets)을 찾을 수 없습니다. Streamlit Cloud 설정에서 URL과 Key를 등록해주세요.")
+    st.stop()
 
 # 3. CSS 디자인 (기본 스타일 유지)
 st.markdown("""
