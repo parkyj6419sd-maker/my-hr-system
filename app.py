@@ -8,8 +8,7 @@ st.set_page_config(page_title="Enterprise HR Portal", page_icon="🏢", layout="
 
 # 2. Supabase 연결 설정 (영준님의 정보를 아래에 입력하세요)
 SUPABASE_URL = "gtofmlmvgdqvelqclnxt"
-SUPABASE_KEY = "sb_publishable_1FRhsAX5VxUVvmbqzzEYyA_xlqa6nh_"
-
+SUPABASE_KEY = "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Imd0b2ZtbG12Z2RxdmVscWNsbnh0Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzcwODkxNzAsImV4cCI6MjA5MjY2NTE3MH0.bWVeGnW_90MqSDej5piBAKSvKH9XqFJkKzdzjkb3-Ig"
 @st.cache_resource
 def init_connection():
     return create_client(SUPABASE_URL, SUPABASE_KEY)
