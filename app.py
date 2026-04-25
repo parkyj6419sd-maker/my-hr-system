@@ -173,7 +173,7 @@ if menu == "대시보드":
     
     col1, col2 = st.columns(2)
     with col1: st.metric("이번 달 누적 근무 시간", f"{m_hours} 시간")
-    with col2: st.metric("잔여 연차", f"{user['total_leaves'] - used_leaves} 일")
+    with col2: st.metric("잔여 연차", f"{(user.get('total_leaves') or 15) - used_leaves} 일")
 
 # --- 메뉴 2: 개인정보 관리 (복구됨) ---
 elif menu == "개인정보 관리":
