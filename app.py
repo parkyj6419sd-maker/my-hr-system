@@ -222,9 +222,9 @@ elif menu == "주간 타임시트":
                     else: supabase.table("work_logs").insert({"emp_id": user['emp_id'], "name": user['name'], "work_date": str(d_date), "hours": n_hrs}).execute()
                     st.rerun()
 
-# --- 메뉴 4: 휴가 관리 ---
-elif menu == "휴가 관리":
-    st.markdown("<h2>휴가 관리</h2>", unsafe_allow_html=True)
+# --- 메뉴 4: 근태 예외 기안 ---
+elif menu == "근태 예외 기안":
+    st.markdown("<h2>근태 예외 기안</h2>", unsafe_allow_html=True)
     approver_opts = get_approver_list(); app_keys = list(approver_opts.keys())
     
     with st.form("leave_form"):
